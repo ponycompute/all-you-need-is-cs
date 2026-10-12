@@ -77,12 +77,6 @@ export default function DocsShell({ topic, children }: { topic?: Topic; children
         </details>
 
         {children}
-
-        <footer className="mt-auto border-t border-hairline px-6 py-8 text-center">
-          <p className="font-mono text-xs leading-[1.33] text-body">
-            All You Need is CS · Horowitz / Sahni / Anderson-Freed · Next.js &amp; p5.js
-          </p>
-        </footer>
       </div>
     </div>
   );

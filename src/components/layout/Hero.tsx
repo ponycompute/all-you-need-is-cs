@@ -11,28 +11,14 @@ export default function Hero() {
         </h1>
 
         <p className="mt-6 text-base leading-normal text-body md:text-[16px] md:leading-[1.5]">
-          Chapter-shaped{" "}
-          <span className="font-medium text-ink">interactive labs</span> for{" "}
-          <span className="font-medium text-ink">
-            Fundamentals of Data Structures in C
-          </span>{" "}
-          (Horowitz, Sahni &amp; Anderson-Freed, 2nd ed.)—same flat doc-like layout, less
-          slideshow, more structure.
+          <span className="font-medium text-ink">Interactive labs</span> for{" "}
+          <span className="font-medium text-ink">Fundamentals of Data Structures in C</span>, chapter by chapter.
         </p>
-
-        <div className="mt-8 flex justify-center px-2">
-          <div className="ui-install-snippet overflow-x-auto">
-            <code className="whitespace-nowrap">npm run dev</code>
-          </div>
-        </div>
 
         <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
           <Link href={`/topics/${first.id}`} className="ui-btn-primary">
             Start at {first.bookChapter}
           </Link>
-          <span className="ui-caption text-mute">
-            Ch. 1–10 · 10 topics
-          </span>
         </div>
       </div>
     </section>
