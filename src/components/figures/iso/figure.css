@@ -107,3 +107,26 @@
     transition: none;
   }
 }
+
+/* A long step note wraps instead of running under the hint. */
+.fig .iso-plate-corner[data-corner="readout"] {
+  max-width: 62%;
+  white-space: normal;
+  text-align: right;
+  line-height: 1.25;
+}
+
+@media (max-width: 560px) {
+  .fig .iso-plate-corner[data-corner="readout"] {
+    max-width: 100%;
+  }
+
+  /* Room for a two-line readout under the hint. */
+  .fig .iso-plate {
+    padding-bottom: 84px;
+  }
+
+  .fig .iso-plate-corner[data-corner="hint"] {
+    bottom: 32px;
+  }
+}

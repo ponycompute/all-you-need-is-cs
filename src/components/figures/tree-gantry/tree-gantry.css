@@ -1,0 +1,33 @@
+/* The tree gantry: shared by every lab that hangs a tree. */
+.tg-string {
+  stroke-width: 0.8px;
+}
+
+.tg-heavy {
+  stroke-width: 2.2px;
+}
+
+.tg-sub {
+  fill: var(--anatomy-mid);
+  letter-spacing: 0;
+  pointer-events: none;
+}
+
+.tg-via {
+  fill: var(--anatomy-hi);
+  font-weight: 600;
+  letter-spacing: 0;
+  pointer-events: none;
+}
+
+.tg-mark {
+  fill: var(--anatomy-lit);
+  stroke: none;
+}
+
+.tg-bead {
+  fill: var(--anatomy-hi);
+  font-weight: 600;
+  letter-spacing: 0;
+  pointer-events: none;
+}
