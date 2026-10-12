@@ -9,6 +9,7 @@ const BLOCK_H = 100;
 export default function QueueViz() {
   const [queue, setQueue] = useState<number[]>([42, 17, 89]);
   const [animating, setAnimating] = useState<"enqueue" | "dequeue" | null>(null);
+  const [note, setNote] = useState("");
   const [enqVal, setEnqVal] = useState("");
   const queueRef = useRef(queue);
   const animRef = useRef({ type: null as string | null, progress: 0, value: 0 });
@@ -83,7 +84,7 @@ export default function QueueViz() {
       // Animating dequeue (slide out left)
       if (anim.type === "dequeue" && arr.length > 0) {
         const currentX = p.lerp(startX, -BLOCK_W - 40, anim.progress);
-        const alpha = 1 - anim.progress;
+        const alpha = 100 * (1 - anim.progress);
 
         p.push();
         p.fill(0, 70, 55, alpha);
@@ -101,6 +102,11 @@ export default function QueueViz() {
   }, []);
 
   const enqueue = () => {
+    if (queue.length >= 8) {
+      setNote("The queue is full: this lab holds 8 items. Dequeue one first.");
+      return;
+    }
+    setNote(enqVal ? "" : "No value typed, so a random one was used.");
     const val = enqVal ? parseInt(enqVal) : Math.floor(Math.random() * 100);
     setAnimating("enqueue");
     animRef.current = { type: "enqueue", progress: 0, value: val };
@@ -152,6 +158,7 @@ export default function QueueViz() {
         <input
           type="number"
           placeholder="Value"
+          aria-label="Value; leave blank for a random one"
           value={enqVal}
           onChange={(e) => setEnqVal(e.target.value)}
           className="ui-input w-24"
@@ -176,6 +183,7 @@ export default function QueueViz() {
       <p className="ui-caption text-center">
         FRONT → {queue.length > 0 ? queue[0] : "—"} · REAR → {queue.length > 0 ? queue[queue.length - 1] : "—"} · Size: {queue.length}
       </p>
+      {note ? <p className="text-center text-sm leading-[1.43] text-body">{note}</p> : null}
     </div>
   );
 }

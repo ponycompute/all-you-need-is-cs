@@ -12,6 +12,7 @@ interface BSTNode {
 export default function BSTViz() {
   const [root, setRoot] = useState<BSTNode | null>(() => buildSampleBST());
   const [highlightPath, setHighlightPath] = useState<number[]>([]);
+  const [status, setStatus] = useState("Insert, search for, or delete a key; the path it follows is highlighted.");
   const [insertVal, setInsertVal] = useState("");
   const [searchVal, setSearchVal] = useState("");
   const [deleteVal, setDeleteVal] = useState("");
@@ -108,12 +109,23 @@ export default function BSTViz() {
 
   const insert = () => {
     const val = parseInt(insertVal);
-    if (isNaN(val)) return;
+    if (isNaN(val)) {
+      setStatus("Type a whole number first.");
+      return;
+    }
     const path = findPath(root, val, []);
     setHighlightPath(path);
     hlRef.current = path;
+    const last = path[path.length - 1];
+    setStatus(
+      last === val
+        ? `${val} is already in the tree, so nothing is inserted.`
+        : last === undefined
+          ? `Inserted ${val} as the root.`
+          : `Searched ${path.join(" → ")}, fell off at ${last}: ${val} becomes its ${val < last ? "left" : "right"} child.`
+    );
     setTimeout(() => {
-      setRoot((prev) => insertBST(prev ? { ...prev } : null, val));
+      setRoot((prev) => insertBST(prev ? structuredClone(prev) : null, val));
       setHighlightPath([]);
       hlRef.current = [];
     }, 600);
@@ -122,21 +134,43 @@ export default function BSTViz() {
 
   const search = () => {
     const val = parseInt(searchVal);
-    if (isNaN(val)) return;
+    if (isNaN(val)) {
+      setStatus("Type a whole number first.");
+      return;
+    }
     const path = findPath(root, val, []);
     setHighlightPath(path);
     hlRef.current = path;
+    const last = path[path.length - 1];
+    setStatus(
+      last === val
+        ? `Found ${val} after ${path.length} ${path.length === 1 ? "comparison" : "comparisons"}: ${path.join(" → ")}.`
+        : `${val} is not in the tree: the search ${path.length ? `went ${path.join(" → ")} and reached NULL` : "found an empty tree"}.`
+    );
     setTimeout(() => { setHighlightPath([]); hlRef.current = []; }, 1500);
   };
 
   const remove = () => {
     const val = parseInt(deleteVal);
-    if (isNaN(val)) return;
+    if (isNaN(val)) {
+      setStatus("Type a whole number first.");
+      return;
+    }
     const path = findPath(root, val, []);
     setHighlightPath(path);
     hlRef.current = path;
+    let target: BSTNode | null = root;
+    while (target && target.value !== val) target = val < target.value ? target.left : target.right;
+    if (!target) setStatus(`${val} is not in the tree, so nothing is deleted.`);
+    else if (!target.left && !target.right) setStatus(`${val} is a leaf: it is simply removed.`);
+    else if (!target.left || !target.right) setStatus(`${val} has one child: that child takes its place.`);
+    else {
+      let successor = target.right;
+      while (successor.left) successor = successor.left;
+      setStatus(`${val} has two children: it is replaced by ${successor.value}, the smallest key in its right subtree.`);
+    }
     setTimeout(() => {
-      setRoot((prev) => deleteBST(prev ? { ...prev } : null, val));
+      setRoot((prev) => deleteBST(prev ? structuredClone(prev) : null, val));
       setHighlightPath([]);
       hlRef.current = [];
     }, 600);
@@ -179,15 +213,19 @@ export default function BSTViz() {
         </button>
         <button
           type="button"
-          onClick={() => setRoot(buildSampleBST())}
+          onClick={() => {
+            setRoot(buildSampleBST());
+            setStatus("Reset to the sample tree.");
+          }}
           className="ui-btn-secondary"
         >
           Reset
         </button>
       </div>
       <p className="ui-caption text-center">
-        BST property: left &lt; root &lt; right · {highlightPath.length > 0 ? `Path: [${highlightPath.join(" → ")}]` : ""}
+        BST property: left &lt; root &lt; right
       </p>
+      <p className="text-center text-sm leading-[1.43] text-body">{status}</p>
     </div>
   );
 }

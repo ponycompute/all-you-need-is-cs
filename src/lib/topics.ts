@@ -31,7 +31,7 @@ export const PHASE1_TOPICS: Topic[] = [
     id: "basic-concepts",
     title: "Basic Concepts",
     subtitle:
-      "Algorithm specification, data abstraction, and performance analysis—foundations from Ch. 1 (read-first; no sandbox).",
+      "Algorithm specification, data abstraction, and performance analysis—the foundations every later chapter relies on. Reading only: this chapter has no labs.",
     complexity: "easy",
     bookChapter: "Ch. 1",
     outline: [
@@ -82,7 +82,7 @@ export const PHASE1_TOPICS: Topic[] = [
     id: "linked-list",
     title: "Linked Lists",
     subtitle:
-      "Ch. 4: singly linked lists, C-style chains, linked stacks and queues, polynomials, circular lists and related operations, doubly linked lists, equivalence classes, plus sparse matrices in the usual textbook style (§4.7)—stable section ids and URLs.",
+      "Ch. 4 linked lists: singly linked chains and their C representation, linked stacks and queues, polynomials, circular lists, equivalence classes, sparse matrices, and doubly linked lists.",
     complexity: "easy",
     bookChapter: "Ch. 4",
     outline: [
@@ -91,16 +91,16 @@ export const PHASE1_TOPICS: Topic[] = [
       { id: "4-3", label: "§4.3", title: "Linked stacks and queues" },
       { id: "4-4", label: "§4.4", title: "Polynomials" },
       { id: "4-5", label: "§4.5", title: "Additional list operations" },
-      { id: "4-8", label: "§4.8", title: "Doubly linked lists" },
       { id: "4-6", label: "§4.6", title: "Equivalence classes" },
-      { id: "4-7", label: "§4.7", title: "Sparse matrices (textbook §)" },
+      { id: "4-7", label: "§4.7", title: "Sparse matrices" },
+      { id: "4-8", label: "§4.8", title: "Doubly linked lists" },
     ],
   },
   {
     id: "trees",
     title: "Trees",
     subtitle:
-      "Ch. 5 rebuilt from the lecture PDF: tree terminology, binary-tree representations, traversals, threads, heaps, BSTs, selection trees, and union-find.",
+      "Ch. 5 trees: terminology, binary-tree representations, traversals, threads, heaps, BSTs, selection trees, and union-find.",
     complexity: "medium",
     bookChapter: "Ch. 5",
     outline: [

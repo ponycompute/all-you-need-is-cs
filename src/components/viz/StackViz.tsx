@@ -10,6 +10,7 @@ const GAP = 6;
 export default function StackViz() {
   const [stack, setStack] = useState<number[]>([42, 17, 89]);
   const [animating, setAnimating] = useState<"push" | "pop" | null>(null);
+  const [note, setNote] = useState("");
   const [pushVal, setPushVal] = useState("");
   const stackRef = useRef(stack);
   const animRef = useRef({ type: null as string | null, progress: 0, value: 0 });
@@ -79,7 +80,7 @@ export default function StackViz() {
       if (anim.type === "pop" && arr.length > 0) {
         const originalY = startY - arr.length * (BLOCK_H + GAP);
         const currentY = p.lerp(originalY, startY + 50, anim.progress);
-        const alpha = 1 - anim.progress;
+        const alpha = 100 * (1 - anim.progress);
 
         p.push();
         p.fill(0, 80, 60, alpha);
@@ -104,6 +105,11 @@ export default function StackViz() {
   }, []);
 
   const push = () => {
+    if (stack.length >= 5) {
+      setNote("The stack is full: this lab holds 5 items. Pop one first.");
+      return;
+    }
+    setNote(pushVal ? "" : "No value typed, so a random one was used.");
     const val = pushVal ? parseInt(pushVal) : Math.floor(Math.random() * 100);
     setAnimating("push");
     animRef.current = { type: "push", progress: 0, value: val };
@@ -155,6 +161,7 @@ export default function StackViz() {
         <input
           type="number"
           placeholder="Value"
+          aria-label="Value; leave blank for a random one"
           value={pushVal}
           onChange={(e) => setPushVal(e.target.value)}
           className="ui-input w-24"
@@ -179,6 +186,7 @@ export default function StackViz() {
       <p className="ui-caption text-center">
         TOP → {stack.length > 0 ? stack[stack.length - 1] : "—"} · Size: {stack.length}
       </p>
+      {note ? <p className="text-center text-sm leading-[1.43] text-body">{note}</p> : null}
     </div>
   );
 }

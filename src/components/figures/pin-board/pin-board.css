@@ -1,0 +1,25 @@
+/* The pin board (Fig 6.1). */
+.pn-wire {
+  stroke-width: 1.4px;
+}
+
+.pn-pin[data-new],
+.pn-node[data-new],
+.pin-board [data-new] > .pn-wire {
+  animation: pn-arrive 420ms var(--anatomy-ease) both;
+}
+
+@keyframes pn-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pn-pin[data-new],
+  .pn-node[data-new],
+  .pin-board [data-new] > .pn-wire {
+    animation: none;
+  }
+}

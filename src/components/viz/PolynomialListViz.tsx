@@ -13,7 +13,7 @@ function formatPoly(terms: Term[]) {
       if (x.exp === 1) return `${x.coef === 1 ? "" : x.coef === -1 ? "-" : x.coef + "*"}x`;
       return `${x.coef === 1 ? "" : x.coef === -1 ? "-" : x.coef + "*"}x^${x.exp}`;
     })
-    .join(" ")
+    .join(" + ")
     .replace(/\+ -/g, "- ");
 }
 
@@ -39,7 +39,7 @@ export default function PolynomialListViz() {
     <div className="space-y-6">
       <p className="text-center text-sm text-body">
         Polynomials as linked lists of (exponent, coefficient) terms—usually sorted by exponent for
-        addition and multiplication, as in §4.3.
+        addition and multiplication.
       </p>
 
       <div className="mx-auto max-w-xl rounded-lg border border-hairline bg-canvas p-4">

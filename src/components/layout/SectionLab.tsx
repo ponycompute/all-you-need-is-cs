@@ -18,16 +18,17 @@ const LinkedStacksQueuesViz = dynamic(
   () => import("@/components/viz/LinkedStacksQueuesViz"),
   { ssr: false }
 );
-const EquivalenceClassViz = dynamic(
-  () => import("@/components/viz/EquivalenceClassViz"),
-  { ssr: false }
-);
+const ClassPegsFigure = dynamic(() => import("@/components/figures/class-pegs/ClassPegsFigure"), {
+  ssr: false,
+});
 const PolynomialListViz = dynamic(() => import("@/components/viz/PolynomialListViz"), {
   ssr: false,
 });
-const UnionFindViz = dynamic(() => import("@/components/viz/UnionFindViz"), { ssr: false });
+const TagForestFigure = dynamic(() => import("@/components/figures/tag-forest/TagForestFigure"), {
+  ssr: false,
+});
 const RadixSortViz = dynamic(() => import("@/components/viz/RadixSortViz"), { ssr: false });
-const LinkedListViz = dynamic(() => import("@/components/viz/LinkedListViz"), {
+const PatchBoardFigure = dynamic(() => import("@/components/figures/patch-board/PatchBoardFigure"), {
   ssr: false,
 });
 const MazeStackViz = dynamic(() => import("@/components/viz/MazeStackViz"), { ssr: false });
@@ -37,6 +38,9 @@ const DualStackArrayViz = dynamic(() => import("@/components/viz/DualStackArrayV
   ssr: false,
 });
 const QueueViz = dynamic(() => import("@/components/viz/QueueViz"), { ssr: false });
+const RingQueueFigure = dynamic(() => import("@/components/figures/ring-queue/RingQueueFigure"), {
+  ssr: false,
+});
 const HashTableViz = dynamic(() => import("@/components/viz/HashTableViz"), {
   ssr: false,
 });
@@ -48,6 +52,18 @@ const HeapStructuresConceptViz = dynamic(
   () => import("@/components/viz/HeapStructuresConceptViz"),
   { ssr: false }
 );
+const HeapSortFigure = dynamic(() => import("@/components/figures/heap-rack/HeapSortFigure"), {
+  ssr: false,
+});
+const MergeYardFigure = dynamic(() => import("@/components/figures/merge-yard/MergeYardFigure"), {
+  ssr: false,
+});
+const HashDirectoryFigure = dynamic(() => import("@/components/figures/hash-directory/HashDirectoryFigure"), {
+  ssr: false,
+});
+const PinBoardFigure = dynamic(() => import("@/components/figures/pin-board/PinBoardFigure"), {
+  ssr: false,
+});
 const GraphViz = dynamic(() => import("@/components/viz/GraphViz"), { ssr: false });
 const InternalSortingConceptViz = dynamic(
   () => import("@/components/viz/InternalSortingConceptViz"),
@@ -106,7 +122,7 @@ function labNode(topicId: string, sectionId: string): ReactNode | null {
         return <StackViz />;
       }
       if (sectionId === "3-3") {
-        return <QueueViz />;
+        return <RingQueueFigure />;
       }
       return <StackQueuePair />;
     case "linked-list":
@@ -117,16 +133,17 @@ function labNode(topicId: string, sectionId: string): ReactNode | null {
         return <LinkedStacksQueuesViz />;
       }
       if (sectionId === "4-6") {
-        return <EquivalenceClassViz />;
+        return <ClassPegsFigure />;
       }
       if (sectionId === "4-7") {
         return <SparseMatrixViz />;
       }
-      return <LinkedListViz initialDoubly={sectionId === "4-8"} />;
+      return <PatchBoardFigure key={sectionId} doubly={sectionId === "4-8"} />;
     case "trees":
       if (sectionId === "5-6") return <HeapViz />;
       if (sectionId === "5-7") return <BSTViz />;
-      if (sectionId === "5-10") return <UnionFindViz />;
+      if (sectionId === "5-10") return <TagForestFigure />;
+      if (sectionId === "5-8") return <MergeYardFigure fig="Fig 5.8" />;
       if (
         sectionId === "5-1" ||
         sectionId === "5-2" ||
@@ -141,8 +158,10 @@ function labNode(topicId: string, sectionId: string): ReactNode | null {
       }
       return <TreeViz />;
     case "graphs":
+      if (sectionId === "6-1") return <PinBoardFigure />;
       return <GraphViz key={sectionId} sectionId={sectionId} />;
     case "sorting":
+      if (["7-11-2", "7-11-3", "7-11-4", "7-11-5"].includes(sectionId)) return <MergeYardFigure fig="Fig 7.11" />;
       if (
         sectionId === "7-1" ||
         sectionId === "7-2" ||
@@ -161,10 +180,11 @@ function labNode(topicId: string, sectionId: string): ReactNode | null {
       ) {
         return <InternalSortingConceptViz sectionId={sectionId} />;
       }
-      if (sectionId === "7-7") return <HeapViz />;
+      if (sectionId === "7-7") return <HeapSortFigure />;
       if (sectionId === "7-8") return <RadixSortViz />;
       return null;
     case "hash-table":
+      if (sectionId.startsWith("8-3")) return <HashDirectoryFigure />;
       return <HashTableViz key={sectionId} sectionId={sectionId} />;
     case "heap":
       return <HeapStructuresConceptViz key={sectionId} sectionId={sectionId} />;

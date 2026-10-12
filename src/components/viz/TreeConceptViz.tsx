@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type TreeConceptVizProps = {
   sectionId: string;
@@ -62,6 +62,30 @@ const BINARY_EDGES: DiagramEdge[] = [
   { from: "C", to: "G" },
 ];
 
+// The nine-node tree whose four orders the §5.3 text quotes.
+const TRAVERSAL_NODES: DiagramNode[] = [
+  { id: "A", label: "A", x: 340, y: 36 },
+  { id: "B", label: "B", x: 200, y: 104 },
+  { id: "C", label: "C", x: 480, y: 104 },
+  { id: "D", label: "D", x: 130, y: 172 },
+  { id: "E", label: "E", x: 270, y: 172 },
+  { id: "F", label: "F", x: 410, y: 172 },
+  { id: "G", label: "G", x: 550, y: 172 },
+  { id: "H", label: "H", x: 85, y: 240 },
+  { id: "I", label: "I", x: 175, y: 240 },
+];
+
+const TRAVERSAL_EDGES: DiagramEdge[] = [
+  { from: "A", to: "B", label: "left" },
+  { from: "A", to: "C", label: "right" },
+  { from: "B", to: "D" },
+  { from: "B", to: "E" },
+  { from: "C", to: "F" },
+  { from: "C", to: "G" },
+  { from: "D", to: "H" },
+  { from: "D", to: "I" },
+];
+
 const THREAD_NODES: DiagramNode[] = [
   { id: "D", label: "D", x: 125, y: 220 },
   { id: "B", label: "B", x: 245, y: 132 },
@@ -115,9 +139,32 @@ const FOREST_EDGES: DiagramEdge[] = [
   { from: "D", to: "E" },
   { from: "D", to: "F" },
   { from: "G", to: "H" },
-  { from: "A", to: "D", dashed: true, label: "sibling" },
-  { from: "D", to: "G", dashed: true, label: "sibling" },
 ];
+
+// The same forest as one binary tree: a solid link to the first child, a dashed link to the next sibling.
+const FOREST_BINARY_EDGES: DiagramEdge[] = [
+  { from: "A", to: "B", label: "left" },
+  { from: "B", to: "C", dashed: true, label: "right" },
+  { from: "A", to: "D", dashed: true, label: "right" },
+  { from: "D", to: "E", label: "left" },
+  { from: "E", to: "F", dashed: true, label: "right" },
+  { from: "D", to: "G", dashed: true, label: "right" },
+  { from: "G", to: "H", label: "left" },
+];
+
+/** The five binary trees on three nodes, numbered in preorder, with the inorder sequence each one gives. */
+const SHAPES: Array<{ at: Array<[number, number]>; edges: Array<[number, number]>; inorder: string }> = [
+  { at: [[30, 50], [0, 120], [-30, 190]], edges: [[0, 1], [1, 2]], inorder: "3 2 1" },
+  { at: [[15, 50], [-25, 120], [15, 190]], edges: [[0, 1], [1, 2]], inorder: "2 3 1" },
+  { at: [[0, 50], [-36, 120], [36, 120]], edges: [[0, 1], [0, 2]], inorder: "2 1 3" },
+  { at: [[-15, 50], [25, 120], [-15, 190]], edges: [[0, 1], [1, 2]], inorder: "1 3 2" },
+  { at: [[-30, 50], [0, 120], [30, 190]], edges: [[0, 1], [1, 2]], inorder: "1 2 3" },
+];
+const SHAPE_SLOT = 136;
+const SHAPE_NODES: DiagramNode[] = SHAPES.flatMap((shape, tree) =>
+  shape.at.map(([dx, y], node) => ({ id: `${tree}-${node}`, label: String(node + 1), x: SHAPE_SLOT * (tree + 0.5) + dx, y })),
+);
+const SHAPE_EDGES: DiagramEdge[] = SHAPES.flatMap((shape, tree) => shape.edges.map(([from, to]) => ({ from: `${tree}-${from}`, to: `${tree}-${to}` })));
 
 const COUNT_NODES: DiagramNode[] = [
   { id: "1", label: "1", x: 340, y: 44 },
@@ -139,15 +186,40 @@ const COUNT_EDGES: DiagramEdge[] = [
 ];
 
 const TRAVERSALS = {
-  pre: ["A", "B", "D", "E", "C", "F", "G"],
-  in: ["D", "B", "E", "A", "F", "C", "G"],
-  post: ["D", "E", "B", "F", "G", "C", "A"],
+  pre: ["A", "B", "D", "H", "I", "E", "C", "F", "G"],
+  in: ["H", "D", "I", "B", "E", "A", "F", "C", "G"],
+  post: ["H", "I", "D", "E", "B", "F", "G", "C", "A"],
+  level: ["A", "B", "C", "D", "E", "F", "G", "H", "I"],
 };
+
+const ORDER_NAMES: Record<keyof typeof TRAVERSALS, string> = {
+  pre: "Preorder (VLR)",
+  in: "Inorder (LVR)",
+  post: "Postorder (LRV)",
+  level: "Level order",
+};
+
+/** Time between visits while a traversal plays. */
+const VISIT_MS = 550;
 
 export default function TreeConceptViz({ sectionId }: TreeConceptVizProps) {
   const [order, setOrder] = useState<keyof typeof TRAVERSALS>("in");
+  // How many nodes of the chosen traversal have been visited so far.
+  const [visited, setVisited] = useState(TRAVERSALS.in.length);
+  const [binary, setBinary] = useState(false);
 
-  const content = useMemo(() => conceptFor(sectionId, order), [sectionId, order]);
+  useEffect(() => {
+    if (sectionId !== "5-3" || visited >= TRAVERSALS[order].length) return;
+    const timer = setTimeout(() => setVisited((count) => count + 1), VISIT_MS);
+    return () => clearTimeout(timer);
+  }, [sectionId, order, visited]);
+
+  const play = (next: keyof typeof TRAVERSALS) => {
+    setOrder(next);
+    setVisited(0);
+  };
+
+  const content = useMemo(() => conceptFor(sectionId, order, visited, binary), [sectionId, order, visited, binary]);
 
   return (
     <div className="space-y-4">
@@ -183,41 +255,45 @@ export default function TreeConceptViz({ sectionId }: TreeConceptVizProps) {
         </svg>
       </div>
 
-      <div className="flex flex-wrap items-center justify-center gap-2">
-        {sectionId === "5-3" ? (
-          <>
-            <button type="button" onClick={() => setOrder("pre")} className={order === "pre" ? "ui-btn-primary" : "ui-btn-secondary"}>
-              Preorder
+      {sectionId === "5-3" ? (
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          {(Object.keys(TRAVERSALS) as Array<keyof typeof TRAVERSALS>).map((name) => (
+            <button key={name} type="button" onClick={() => play(name)} className={order === name ? "ui-btn-primary" : "ui-btn-secondary"}>
+              {ORDER_NAMES[name]}
             </button>
-            <button type="button" onClick={() => setOrder("in")} className={order === "in" ? "ui-btn-primary" : "ui-btn-secondary"}>
-              Inorder
-            </button>
-            <button type="button" onClick={() => setOrder("post")} className={order === "post" ? "ui-btn-primary" : "ui-btn-secondary"}>
-              Postorder
-            </button>
-          </>
-        ) : null}
-      </div>
+          ))}
+        </div>
+      ) : null}
+      {sectionId === "5-9" ? (
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <button type="button" onClick={() => setBinary(false)} className={binary ? "ui-btn-secondary" : "ui-btn-primary"}>
+            Forest
+          </button>
+          <button type="button" onClick={() => setBinary(true)} className={binary ? "ui-btn-primary" : "ui-btn-secondary"}>
+            As a binary tree
+          </button>
+        </div>
+      ) : null}
 
       <p className="ui-caption text-center">{content.caption}</p>
     </div>
   );
 }
 
-function conceptFor(sectionId: string, order: keyof typeof TRAVERSALS) {
+function conceptFor(sectionId: string, order: keyof typeof TRAVERSALS, visited: number, binary: boolean) {
   switch (sectionId) {
     case "5-1":
       return {
         title: "Tree terminology and left-child right-sibling representation",
         nodes: BASE_NODES,
         edges: BASE_EDGES,
-        active: ["A", "E", "F", "G", "H", "I"],
+        active: ["E", "F", "G", "H", "I"],
         annotations: [
-          { x: 340, y: 22, text: "root" },
-          { x: 205, y: 106, text: "degree 2" },
-          { x: 415, y: 278, text: "leaves: E F G H I" },
+          { x: 340, y: 18, text: "root A · level 1 · degree 3" },
+          { x: 130, y: 132, text: "B: degree 2" },
+          { x: 340, y: 278, text: "leaves (degree 0), filled: E F G H I · height 3" },
         ],
-        caption: "General tree: root, subtrees, degree, siblings, ancestors, descendants, level, and height.",
+        caption: "A general tree. B, C and D are siblings and the children of A; E and F are descendants of B; the degree of the tree is the largest node degree, 3.",
       };
     case "5-2":
       return {
@@ -234,13 +310,13 @@ function conceptFor(sectionId: string, order: keyof typeof TRAVERSALS) {
     case "5-3":
       return {
         title: "Binary tree traversal orders",
-        nodes: BINARY_NODES,
-        edges: BINARY_EDGES,
-        active: TRAVERSALS[order],
+        nodes: TRAVERSAL_NODES,
+        edges: TRAVERSAL_EDGES,
+        active: TRAVERSALS[order].slice(0, visited),
         annotations: [
-          { x: 340, y: 278, text: `${order} order: ${TRAVERSALS[order].join(" ")}` },
+          { x: 400, y: 286, text: `${ORDER_NAMES[order]}: ${TRAVERSALS[order].slice(0, visited).join(" ") || "…"}` },
         ],
-        caption: "Traversal changes the visit order, not the tree shape.",
+        caption: "Pick an order to replay it: nodes fill in as they are visited. The tree never changes, only the order of the visits.",
       };
     case "5-4":
       return {
@@ -278,26 +354,31 @@ function conceptFor(sectionId: string, order: keyof typeof TRAVERSALS) {
       };
     case "5-9":
       return {
-        title: "Forest represented with left-child right-sibling links",
+        title: binary ? "The forest stored as one binary tree" : "A forest of three trees",
         nodes: FOREST_NODES,
-        edges: FOREST_EDGES,
+        edges: binary ? FOREST_BINARY_EDGES : FOREST_EDGES,
         active: ["A", "D", "G"],
-        annotations: [
-          { x: 340, y: 258, text: "roots become a sibling chain" },
-        ],
-        caption: "The PDF skips §5.9, so this page visualizes the earlier tree-to-binary representation bridge.",
+        annotations: binary
+          ? [
+              { x: 340, y: 236, text: "preorder A B C D E F G H = forest preorder" },
+              { x: 340, y: 262, text: "inorder B C A E F D H G = forest inorder" },
+            ]
+          : [{ x: 340, y: 250, text: "three trees, roots A, D and G (filled)" }],
+        caption: binary
+          ? "Each node keeps two links: left (solid) to its first child, right (dashed) to its next sibling. The roots count as siblings, so the whole forest is one binary tree rooted at A."
+          : "Switch to the binary-tree form to see the same eight nodes joined by first-child and next-sibling links.",
       };
     case "5-11":
       return {
-        title: "Binary tree counting properties",
-        nodes: COUNT_NODES,
-        edges: COUNT_EDGES,
-        active: ["4", "5", "6", "7"],
+        title: "The five distinct binary trees with three nodes",
+        nodes: SHAPE_NODES,
+        edges: SHAPE_EDGES,
+        active: [],
         annotations: [
-          { x: 205, y: 278, text: "leaves n0 = 4" },
-          { x: 480, y: 278, text: "degree-two n2 = 3" },
+          ...SHAPES.map((shape, tree) => ({ x: SHAPE_SLOT * (tree + 0.5), y: 240, text: `inorder ${shape.inorder}` })),
+          { x: 340, y: 282, text: "b(n) = C(2n, n) / (n + 1):  1, 2, 5, 14, 42, …" },
         ],
-        caption: "PDF-backed counting facts: full tree nodes are 2^k - 1, and leaves satisfy n0 = n2 + 1.",
+        caption: "All five binary trees with three nodes, numbered in preorder. Their inorder sequences are the five orderings of 1 2 3 a stack can produce; 3 1 2 is the one it cannot, and no tree gives it.",
       };
     default:
       return {
@@ -317,14 +398,17 @@ function DiagramLine({ edge, nodes }: { edge: DiagramEdge; nodes: DiagramNode[] 
   if (!from || !to) return null;
   const midX = (from.x + to.x) / 2;
   const midY = (from.y + to.y) / 2 - 6;
+  // Stop the line at each circle's rim, whatever direction it runs in.
+  const length = Math.hypot(to.x - from.x, to.y - from.y) || 1;
+  const [ux, uy] = [(to.x - from.x) / length, (to.y - from.y) / length];
 
   return (
     <g>
       <line
-        x1={from.x}
-        y1={from.y + 18}
-        x2={to.x}
-        y2={to.y - 18}
+        x1={from.x + ux * 22}
+        y1={from.y + uy * 22}
+        x2={to.x - ux * 22}
+        y2={to.y - uy * 22}
         stroke={edge.dashed ? "#a3a3a3" : "#d4d4d4"}
         strokeWidth="2"
         strokeLinecap="round"

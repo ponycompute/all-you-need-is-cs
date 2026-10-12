@@ -238,14 +238,17 @@ function FunctionsPanel() {
   const transformed = additiveTransform(key);
   const division = transformed % 13;
   const chunks = key.match(/.{1,3}/g) ?? [key];
-  const folded = chunks.reduce((sum, chunk) => sum + additiveTransform(chunk), 0) % 997;
+  // Shift folding: read each three-letter partition as one number (two digits per letter), add the partitions.
+  const parts = chunks.map((chunk) => Number([...chunk].map((char) => String(char.charCodeAt(0) % 100).padStart(2, "0")).join("")));
+  const foldedSum = parts.reduce((sum, part) => sum + part, 0);
+  const folded = foldedSum % 13;
 
   return (
     <div className="space-y-5">
       <SectionTitle
         eyebrow="§8.2.2"
         title="A hash function should be uniform"
-        copy="The book compares mid-square, division, folding, and digit analysis. This panel uses the same additive transform used later in the overflow example."
+        copy="The book compares mid-square, division, folding, and digit analysis. This panel works division and folding on one key, next to the first-character function from §8.2.1. The table size M is 13."
       />
       <div className="flex flex-wrap items-center justify-center gap-2">
         {["for", "while", "function", "clock", "ctime"].map((item) => (
@@ -257,7 +260,7 @@ function FunctionsPanel() {
       <div className="grid gap-3 md:grid-cols-4">
         <MetricCard label="Transform" value={`${transformed}`} note="Sum of character codes, used in Program 8.2." />
         <MetricCard label="Division" value={`${transformed} % 13 = ${division}`} note="The preferred general-purpose family when M is chosen carefully." />
-        <MetricCard label="Folding" value={`${folded}`} note={`Chunks: ${chunks.join(" + ")}, then reduce to the table range.`} />
+        <MetricCard label="Folding" value={`${foldedSum} % 13 = ${folded}`} note={`Partitions ${chunks.join(" | ")} read as numbers (${parts.join(" + ")}), added, then % 13.`} />
         <MetricCard label="First char" value={`${firstCharBucket(key)}`} note="Easy to compute, but biased because identifiers cluster by prefixes." />
       </div>
       <div className="grid gap-3 md:grid-cols-2">
@@ -437,11 +440,11 @@ function DynamicPanel() {
       note: "A new page is allocated and the overflowing page is separated with one more bit.",
     },
     {
-      title: "cl inserted",
+      title: "c1 inserted",
       depth: "directory expands",
       entries: [
         ["0000", "a: a0, b0"],
-        ["0001", "c: a1, cl"],
+        ["0001", "c: a1, c1"],
         ["1001", "d: b1"],
         ["0101", "e: c5"],
         ["0010", "b: c2"],

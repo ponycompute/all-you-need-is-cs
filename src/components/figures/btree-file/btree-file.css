@@ -1,0 +1,110 @@
+/* The card file (Fig 10.6). Tokens are scoped to the figure; the kit's light theme does the rest. */
+.btree-file {
+  --anatomy-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
+  --bf-window: #d6d6d2;
+}
+
+.btree-file .iso-figure {
+  margin: 0;
+}
+
+.btree-file .iso-plate {
+  padding: 44px 16px 46px;
+  border-radius: 10px;
+  box-shadow: 0 0 0 1px var(--color-hairline);
+}
+
+.btree-file .iso-legend {
+  margin-top: 14px;
+  font-size: 13px;
+}
+
+.bf-stage {
+  outline: none;
+  touch-action: pan-y;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.bf-stage:focus-visible {
+  outline: 1px solid var(--anatomy-muted);
+  outline-offset: 6px;
+}
+
+.bf-key {
+  fill: var(--anatomy-hi);
+  font-weight: 600;
+  letter-spacing: 0;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* The card being followed: the one lit part. */
+.bf-card[data-lit] .bf-key {
+  fill: var(--anatomy-lit);
+}
+
+.bf-card[data-lit] .iso-edge {
+  stroke-width: 1.3px;
+}
+
+/* The rim round a tray: drawn only while its page is being read. */
+.bf-tray {
+  stroke: transparent;
+  transition: stroke 160ms var(--anatomy-ease);
+}
+
+.bf-tray[data-on] {
+  stroke: var(--anatomy-lit);
+  stroke-width: 1.4px;
+}
+
+.bf-track {
+  stroke-width: 0.9px;
+}
+
+.bf-window {
+  fill: var(--bf-window);
+  stroke: none;
+}
+
+.bf-digits {
+  fill: var(--anatomy-hi);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+}
+
+.bf-hit {
+  fill: var(--anatomy-lit);
+  fill-opacity: 0;
+  stroke: none;
+  cursor: pointer;
+  transition: fill-opacity 180ms var(--anatomy-ease);
+}
+
+.bf-hit:hover {
+  fill-opacity: 0.05;
+}
+
+.bf-stage[data-busy] .bf-hit {
+  cursor: default;
+}
+
+.bf-stage[data-busy] .bf-hit:hover {
+  fill-opacity: 0;
+}
+
+.bf-live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bf-tray,
+  .bf-hit {
+    transition: none;
+  }
+}

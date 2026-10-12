@@ -137,8 +137,7 @@ export default function GraphViz({ sectionId = "6-2" }: { sectionId?: string }) 
         const active =
           currentStep.activeEdges.has(edgeKey(edge.from, edge.to)) ||
           currentStep.activeEdges.has(reverseEdgeKey(edge.from, edge.to)) ||
-          currentStep.activeEdges.has(undirectedKey(edge.from, edge.to)) ||
-          edge.critical === true;
+          currentStep.activeEdges.has(undirectedKey(edge.from, edge.to));
 
         p.stroke(active ? 35 : 0, active ? 85 : 0, active ? 78 : 80);
         p.strokeWeight(active ? 4 : 2);
@@ -478,7 +477,8 @@ function kruskalSteps(view: GraphView): StepState[] {
 function dijkstraSteps(view: GraphView): StepState[] {
   const distances = new Map(view.nodes.map((node) => [node.id, Number.POSITIVE_INFINITY]));
   const finalized = new Set<string>();
-  const activeEdges = new Set<string>();
+  // The edge each vertex's best distance came through: together they are the shortest-path tree.
+  const through = new Map<string, string>();
   const steps: StepState[] = [];
   distances.set("1", 0);
 
@@ -494,7 +494,7 @@ function dijkstraSteps(view: GraphView): StepState[] {
       const candidate = distances.get(id)! + (edge.weight ?? 0);
       if (candidate < distances.get(edge.to)!) {
         distances.set(edge.to, candidate);
-        activeEdges.add(edgeKey(edge.from, edge.to));
+        through.set(edge.to, edgeKey(edge.from, edge.to));
       }
     }
 
@@ -504,8 +504,8 @@ function dijkstraSteps(view: GraphView): StepState[] {
       frontier: [...distances.entries()]
         .filter(([nodeId, dist]) => !finalized.has(nodeId) && Number.isFinite(dist))
         .map(([nodeId]) => nodeId),
-      activeEdges: new Set(activeEdges),
-      message: `Finalize ${id}; relax outgoing weighted edges from that vertex.`,
+      activeEdges: new Set(through.values()),
+      message: `Finalize ${id}; relax its outgoing edges. Highlighted edges are the best known way into each vertex.`,
       metric: `DIST: ${formatDistances(distances)}`,
     });
   }
@@ -565,15 +565,27 @@ function topologicalSteps(view: GraphView): StepState[] {
 }
 
 function criticalPathSteps(): StepState[] {
-  const path = ["v1", "v2", "v5", "v7", "v9"];
-  return path.map((id, index) => ({
+  // Two paths of length 18 leave v5; every activity on either has e(i) = l(i).
+  const first = ["v1", "v2", "v5", "v7", "v9"];
+  const second = ["v5", "v8", "v9"];
+  const edgesOf = (path: string[]) => path.slice(0, -1).map((from, i) => edgeKey(from, path[i + 1]));
+  const steps: StepState[] = first.map((id, index) => ({
     current: id,
-    visited: new Set(path.slice(0, index + 1)),
-    frontier: path.slice(index + 1, index + 2),
-    activeEdges: new Set(path.slice(0, index).map((from, i) => edgeKey(from, path[i + 1]))),
-    message: `Critical path prefix reaches ${id}; activities on this route have zero slack.`,
+    visited: new Set(first.slice(0, index + 1)),
+    frontier: first.slice(index + 1, index + 2),
+    activeEdges: new Set(edgesOf(first.slice(0, index + 1))),
+    message: `Critical path reaches ${id}; activities on this route have zero slack.`,
     metric: "Critical path length: 18",
   }));
+  steps.push({
+    current: "v8",
+    visited: new Set([...first, "v8"]),
+    frontier: [],
+    activeEdges: new Set([...edgesOf(first), ...edgesOf(second)]),
+    message: "A second critical path, v5-v8-v9, is just as long. Only v1-v2 and v2-v5 lie on both, so only speeding those shortens the project.",
+    metric: "Two critical paths, both of length 18",
+  });
+  return steps;
 }
 
 function mShortestSteps(): StepState[] {
@@ -644,7 +656,7 @@ function traversalView(): GraphView {
       { from: "4", to: "8", weight: 10 },
       { from: "5", to: "8", weight: 11 },
       { from: "6", to: "8", weight: 12 },
-      { from: "5", to: "6", weight: 14 },
+      { from: "5", to: "6", weight: 3 },
     ],
     tableTitle: "Adjacency lists",
     tableRows: [
@@ -748,13 +760,13 @@ function activityView(): GraphView {
       { from: "v3", to: "v5", weight: 1, directed: true },
       { from: "v4", to: "v6", weight: 2, directed: true },
       { from: "v5", to: "v7", weight: 9, directed: true, critical: true },
-      { from: "v5", to: "v8", weight: 7, directed: true },
+      { from: "v5", to: "v8", weight: 7, directed: true, critical: true },
       { from: "v6", to: "v8", weight: 4, directed: true },
       { from: "v7", to: "v9", weight: 2, directed: true, critical: true },
-      { from: "v8", to: "v9", weight: 4, directed: true },
+      { from: "v8", to: "v9", weight: 4, directed: true, critical: true },
     ],
     tableTitle: "Critical data",
-    tableRows: ["ee(v1)=0", "ee(v5)=7", "ee(v7)=16", "ee(v9)=18", "Critical: v1-v2-v5-v7-v9"],
+    tableRows: ["ee(v1)=0", "ee(v5)=7", "ee(v7)=16", "ee(v8)=14", "ee(v9)=18", "Critical: v1-v2-v5-v7-v9", "and v1-v2-v5-v8-v9"],
     facts: [
       "AOV vertices are activities; edges are precedence constraints.",
       "Topological order fails when every remaining vertex has a predecessor.",

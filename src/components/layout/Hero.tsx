@@ -1,6 +1,8 @@
-"use client";
+import Link from "next/link";
+import { PHASE1_TOPICS } from "@/lib/topics";
 
 export default function Hero() {
+  const first = PHASE1_TOPICS[0]!;
   return (
     <section className="relative flex min-h-[80vh] flex-col items-center justify-center px-6 py-16 md:py-[88px]">
       <div className="relative z-10 max-w-[720px] text-center">
@@ -25,9 +27,9 @@ export default function Hero() {
         </div>
 
         <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
-          <a href="#topics" className="ui-btn-primary">
-            Browse topics
-          </a>
+          <Link href={`/topics/${first.id}`} className="ui-btn-primary">
+            Start at {first.bookChapter}
+          </Link>
           <span className="ui-caption text-mute">
             Ch. 1–10 · 10 topics
           </span>

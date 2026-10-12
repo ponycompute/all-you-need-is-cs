@@ -5,6 +5,9 @@ import type p5 from "p5";
 
 export type SketchFunction = (p: p5) => void;
 
+/** The narrowest canvas the sketches were laid out for. */
+const MIN_LOGICAL_WIDTH = 686;
+
 interface P5WrapperProps {
   sketch: SketchFunction;
   className?: string;
@@ -49,8 +52,11 @@ export default function P5Wrapper({
       const rect = el.getBoundingClientRect();
 
       const wrappedSketch = (p: p5) => {
-        (p as any)._containerWidth = rect.width;
-        (p as any)._containerHeight = Math.min(rect.width * 0.6, 600);
+        // Sketches lay out in absolute pixels for a desktop column. On a narrower container
+        // the canvas keeps that logical size and CSS scales it down, so nothing is cut off.
+        const logicalWidth = Math.max(rect.width, MIN_LOGICAL_WIDTH);
+        (p as any)._containerWidth = logicalWidth;
+        (p as any)._containerHeight = Math.min(logicalWidth * 0.6, 600);
 
         const userSetup = (sketch as any).setup;
         sketch(p);

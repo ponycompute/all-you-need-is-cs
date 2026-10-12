@@ -1,0 +1,110 @@
+/* The AVL mobile (Fig 10.2). Tokens are scoped to the figure; the kit's light theme does the rest. */
+.avl-mobile {
+  --anatomy-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
+  --am-window: #d6d6d2;
+}
+
+.avl-mobile .iso-figure {
+  margin: 0;
+}
+
+.avl-mobile .iso-plate {
+  padding: 44px 16px 46px;
+  border-radius: 10px;
+  box-shadow: 0 0 0 1px var(--color-hairline);
+}
+
+.avl-mobile .iso-legend {
+  margin-top: 14px;
+  font-size: 13px;
+}
+
+.am-stage {
+  outline: none;
+  touch-action: pan-y;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.am-stage:focus-visible {
+  outline: 1px solid var(--anatomy-muted);
+  outline-offset: 6px;
+}
+
+.am-key {
+  fill: var(--anatomy-hi);
+  font-weight: 600;
+  letter-spacing: 0;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* The key being hung: the one lit part. */
+.am-coin[data-lit] .am-key {
+  fill: var(--anatomy-lit);
+}
+
+.am-coin[data-lit] .iso-edge {
+  stroke-width: 1.3px;
+}
+
+/* The rim of the key a new one is held against, or of the node whose balance broke. */
+.am-rim {
+  stroke: transparent;
+  transition: stroke 160ms var(--anatomy-ease);
+}
+
+.am-coin[data-on] .am-rim {
+  stroke: var(--anatomy-lit);
+  stroke-width: 1.5px;
+}
+
+.am-string {
+  stroke-width: 0.8px;
+}
+
+.am-window {
+  fill: var(--am-window);
+  stroke: none;
+}
+
+.am-digits {
+  fill: var(--anatomy-hi);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+}
+
+.am-hit {
+  fill: var(--anatomy-lit);
+  fill-opacity: 0;
+  stroke: none;
+  cursor: pointer;
+  transition: fill-opacity 180ms var(--anatomy-ease);
+}
+
+.am-hit:hover {
+  fill-opacity: 0.05;
+}
+
+.am-stage[data-busy] .am-hit {
+  cursor: default;
+}
+
+.am-stage[data-busy] .am-hit:hover {
+  fill-opacity: 0;
+}
+
+.am-live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .am-rim,
+  .am-hit {
+    transition: none;
+  }
+}

@@ -1,21 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import HeapRackFigure from "@/components/figures/heap-rack/HeapRackFigure";
 import P5Wrapper, { type SketchFunction } from "@/components/viz/P5Wrapper";
 
-type HeapMode = "minmax" | "deap" | "leftist" | "binomial" | "fibonacci";
+type RackMode = "minmax" | "deap";
+type FrameMode = "leftist" | "binomial" | "fibonacci";
+type HeapMode = RackMode | FrameMode;
 type P5Like = Parameters<SketchFunction>[0];
-type Point = { x: number; y: number };
-type HeapAnimation =
-  | {
-      type: "insert" | "delete";
-      value: number;
-      fromIdx: number;
-      toIdx: number;
-      start: number;
-      duration: number;
-    }
-  | null;
 
 const MODES: Record<
   HeapMode,
@@ -28,12 +20,12 @@ const MODES: Record<
   minmax: {
     label: "Min-max heap",
     summary: "Double-ended priority queue with alternating min and max levels.",
-    operations: ["Insert", "Delete Min", "Delete Max", "Reset"],
+    operations: ["Insert", "Delete Min", "Delete Max"],
   },
   deap: {
     label: "Deap",
     summary: "Empty root with min heap on the left and max heap on the right.",
-    operations: ["Insert", "Delete Min", "Delete Max", "Reset"],
+    operations: ["Insert", "Delete Min", "Delete Max"],
   },
   leftist: {
     label: "Leftist tree",
@@ -78,253 +70,117 @@ const SECTION_TO_MODE: Record<string, HeapMode> = {
   "9-5-6": "fibonacci",
 };
 
-const MINMAX_SAMPLE = [7, 70, 40, 30, 9, 10, 15, 45, 50, 30, 20, 12];
-const DEAP_SAMPLE = [5, 45, 10, 8, 25, 40, 15, 19, 9, 30, 20];
-const MOVE_MS = 650;
-
 export default function HeapStructuresConceptViz({ sectionId }: { sectionId: string }) {
   const mode = useMemo(() => SECTION_TO_MODE[sectionId] ?? "minmax", [sectionId]);
+  if (mode === "minmax" || mode === "deap") {
+    return (
+      <div className="space-y-5">
+        <HeapRackFigure kind={mode} />
+        <ModeNotes mode={mode} frame={-1} />
+      </div>
+    );
+  }
+  return <FrameHeapViz mode={mode} />;
+}
+
+function FrameHeapViz({ mode }: { mode: FrameMode }) {
   const active = MODES[mode];
   const [frame, setFrame] = useState(0);
-  const [values, setValues] = useState(() =>
-    mode === "deap" ? normalizeDeap(DEAP_SAMPLE) : buildMinMaxHeap(MINMAX_SAMPLE)
-  );
-  const [extracted, setExtracted] = useState<number[]>([]);
-  const [animating, setAnimating] = useState(false);
-  const [input, setInput] = useState("");
-  const [status, setStatus] = useState(() => `${MODES[mode].label} ready.`);
-  const modeRef = useRef(mode);
+  const [status, setStatus] = useState(() => `Step 1 of ${active.operations.length}: ${active.operations[0]}`);
   const frameRef = useRef(frame);
-  const valuesRef = useRef(values);
-  const extractedRef = useRef(extracted);
   const statusRef = useRef(status);
-  const animRef = useRef<HeapAnimation>(null);
-  const mountedRef = useRef(true);
-
-  useEffect(() => {
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    modeRef.current = mode;
-  }, [mode]);
 
   useEffect(() => {
     frameRef.current = frame;
   }, [frame]);
 
   useEffect(() => {
-    valuesRef.current = values;
-  }, [values]);
-
-  useEffect(() => {
-    extractedRef.current = extracted;
-  }, [extracted]);
-
-  useEffect(() => {
     statusRef.current = status;
   }, [status]);
 
-  const sketch: SketchFunction = useCallback((p) => {
-    p.setup = () => {
-      p.colorMode(p.HSB, 360, 100, 100, 100);
-      p.textAlign(p.CENTER, p.CENTER);
-      p.textFont("monospace");
-    };
+  const sketch: SketchFunction = useCallback(
+    (p) => {
+      p.setup = () => {
+        p.colorMode(p.HSB, 360, 100, 100, 100);
+        p.textAlign(p.CENTER, p.CENTER);
+        p.textFont("monospace");
+      };
 
-    p.draw = () => {
-      p.background(0, 0, 100);
-      drawHeapScene(
-        p,
-        modeRef.current,
-        valuesRef.current,
-        frameRef.current,
-        statusRef.current,
-        animRef.current,
-        extractedRef.current
-      );
-    };
-  }, []);
-
-  const reset = () => {
-    const next = mode === "deap" ? normalizeDeap(DEAP_SAMPLE) : buildMinMaxHeap(MINMAX_SAMPLE);
-    setValues(next);
-    setExtracted([]);
-    animRef.current = null;
-    setAnimating(false);
-    setStatus(`${active.label} reset.`);
-  };
-
-  const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-  const insertValue = async () => {
-    const parsed = Number.parseInt(input, 10);
-    if (Number.isNaN(parsed) || animating) return;
-    setAnimating(true);
-    const current = valuesRef.current;
-    const appended = [...current, parsed];
-    setValues(appended);
-    setInput("");
-    animRef.current = {
-      type: "insert",
-      value: parsed,
-      fromIdx: appended.length - 1,
-      toIdx: 0,
-      start: Date.now(),
-      duration: MOVE_MS,
-    };
-    setStatus(`Inserted ${parsed}; bubbling through the alternating min/max levels.`);
-    await wait(MOVE_MS);
-    if (!mountedRef.current) return;
-    const next = modeRef.current === "deap" ? normalizeDeap(appended) : minMaxInsert(current, parsed);
-    setValues(next);
-    valuesRef.current = next;
-    animRef.current = null;
-    setAnimating(false);
-    setStatus(
-      modeRef.current === "minmax"
-        ? `Inserted ${parsed}; root is min ${next[0]}, max is ${minMaxMax(next)}.`
-        : `Inserted ${parsed}; min and max sides were repartitioned.`
-    );
-  };
-
-  const deleteExtreme = async (kind: "min" | "max") => {
-    if (animating) return;
-    const current = valuesRef.current;
-    if (current.length === 0) return;
-    setAnimating(true);
-    const index =
-      modeRef.current === "minmax"
-        ? kind === "min"
-          ? 0
-          : minMaxMaxIndex(current)
-        : kind === "min"
-          ? current.indexOf(Math.min(...current))
-          : current.indexOf(Math.max(...current));
-    const extreme = current[index];
-    animRef.current = {
-      type: "delete",
-      value: extreme,
-      fromIdx: index,
-      toIdx: -1,
-      start: Date.now(),
-      duration: MOVE_MS,
-    };
-    setStatus(`Deleting ${kind}: ${extreme}. The node moves out before the heap repairs.`);
-    await wait(MOVE_MS);
-    if (!mountedRef.current) return;
-    const remaining = current.filter((_, i) => i !== index);
-    const next = modeRef.current === "deap" ? normalizeDeap(remaining) : buildMinMaxHeap(remaining);
-    setValues(next);
-    valuesRef.current = next;
-    setExtracted((out) => [...out.slice(-5), extreme]);
-    animRef.current = null;
-    setAnimating(false);
-    setStatus(
-      modeRef.current === "minmax"
-        ? `Deleted ${kind}: ${extreme}. Remaining min ${next[0] ?? "-"}, max ${next.length ? minMaxMax(next) : "-"}.`
-        : `Deleted ${kind}: ${extreme}. Min/max sides were repaired.`
-    );
-  };
+      p.draw = () => {
+        p.background(0, 0, 100);
+        drawTitle(p, MODES[mode].label, statusRef.current);
+        if (mode === "leftist") drawLeftist(p, frameRef.current);
+        if (mode === "binomial") drawBinomial(p, frameRef.current);
+        if (mode === "fibonacci") drawFibonacci(p, frameRef.current);
+      };
+    },
+    [mode]
+  );
 
   const selectFrame = (index: number) => {
     setFrame(index);
-    setStatus(`${active.operations[index]} selected.`);
+    setStatus(`Step ${index + 1} of ${active.operations.length}: ${active.operations[index]}`);
   };
 
   return (
     <div className="space-y-5">
       <P5Wrapper sketch={sketch} className="min-h-[380px]" />
 
-      {mode === "minmax" || mode === "deap" ? (
-        <div className="space-y-3">
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            <input
-              type="number"
-              value={input}
-              onChange={(event) => setInput(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") insertValue();
-              }}
-              placeholder="Value"
-              className="ui-input w-24"
-            />
-            <button type="button" onClick={insertValue} disabled={animating} className="ui-btn-primary">
-              Insert
-            </button>
-            <button type="button" onClick={() => deleteExtreme("min")} disabled={animating} className="ui-btn-secondary">
-              Delete Min
-            </button>
-            <button type="button" onClick={() => deleteExtreme("max")} disabled={animating} className="ui-btn-secondary">
-              {mode === "minmax" ? "Delete Max (max level)" : "Delete Max"}
-            </button>
-            <button type="button" onClick={reset} disabled={animating} className="ui-btn-secondary">
-              Reset
-            </button>
-          </div>
-          <p className="ui-caption text-center">
-            Size: {values.length} · Min: {values.length ? Math.min(...values) : "-"} · Max:{" "}
-            {values.length ? Math.max(...values) : "-"} · {status}
-          </p>
-          {mode === "minmax" ? (
-            <p className="ui-caption text-center">
-              This is not a normal min heap: min levels and max levels alternate, so delete-max removes the larger
-              root child.
-            </p>
-          ) : null}
-        </div>
-      ) : (
-        <div className="flex flex-wrap items-center justify-center gap-2">
-          {active.operations.map((operation, index) => (
-            <button
-              key={operation}
-              type="button"
-              onClick={() => selectFrame(index)}
-              className={index === frame ? "ui-btn-primary" : "ui-btn-secondary"}
-            >
-              {operation}
-            </button>
-          ))}
+      <div className="flex flex-wrap items-center justify-center gap-2">
+        {active.operations.map((operation, index) => (
           <button
+            key={operation}
             type="button"
-            onClick={() => selectFrame((frame + 1) % active.operations.length)}
-            className="ui-btn-secondary"
+            onClick={() => selectFrame(index)}
+            className={index === frame ? "ui-btn-primary" : "ui-btn-secondary"}
           >
-            Next
+            {operation}
           </button>
-        </div>
-      )}
+        ))}
+        <button
+          type="button"
+          onClick={() => selectFrame((frame + 1) % active.operations.length)}
+          className="ui-btn-secondary"
+        >
+          {frame === active.operations.length - 1 ? "Back to start" : "Next"}
+        </button>
+      </div>
 
-      <div className="grid gap-4 md:grid-cols-[1.1fr_0.9fr]">
-        <div className="rounded-lg border border-hairline p-4">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <h3 className="font-display text-[20px] font-medium leading-[1.4] text-ink">
-              {active.label}
-            </h3>
-            <span className="rounded-full bg-surface-soft px-3 py-1 font-mono text-xs text-charcoal">
-              Ch. 9
-            </span>
-          </div>
-          <p className="text-sm leading-[1.43] text-body">{active.summary}</p>
-        </div>
+      <ModeNotes mode={mode} frame={frame} />
+    </div>
+  );
+}
 
-        <div className="rounded-lg border border-hairline p-4">
-          <h4 className="mb-3 font-mono text-xs font-medium uppercase text-mute">Operations</h4>
-          <div className="space-y-2">
-            {active.operations.map((operation, index) => (
-              <div
-                key={operation}
-                className={`flex items-center justify-between gap-3 border-b border-hairline py-2 last:border-b-0 ${
-                  index === frame ? "text-ink" : "text-charcoal"
-                }`}
-              >
-                <span className="text-sm font-medium">{operation}</span>
-                <span className="font-mono text-xs">{operationCost(mode, operation)}</span>
-              </div>
-            ))}
-          </div>
+function ModeNotes({ mode, frame }: { mode: HeapMode; frame: number }) {
+  const active = MODES[mode];
+  return (
+    <div className="grid gap-4 md:grid-cols-[1.1fr_0.9fr]">
+      <div className="rounded-lg border border-hairline p-4">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h3 className="font-display text-[20px] font-medium leading-[1.4] text-ink">
+            {active.label}
+          </h3>
+          <span className="rounded-full bg-surface-soft px-3 py-1 font-mono text-xs text-charcoal">
+            Ch. 9
+          </span>
+        </div>
+        <p className="text-sm leading-[1.43] text-body">{active.summary}</p>
+      </div>
+
+      <div className="rounded-lg border border-hairline p-4">
+        <h4 className="mb-3 font-mono text-xs font-medium uppercase text-mute">Operations</h4>
+        <div className="space-y-2">
+          {active.operations.map((operation, index) => (
+            <div
+              key={operation}
+              className={`flex items-center justify-between gap-3 border-b border-hairline py-2 last:border-b-0 ${
+                index === frame ? "text-ink" : "text-charcoal"
+              }`}
+            >
+              <span className="text-sm font-medium">{operation}</span>
+              <span className="font-mono text-xs">{operationCost(mode, operation)}</span>
+            </div>
+          ))}
         </div>
       </div>
     </div>
@@ -335,24 +191,8 @@ function operationCost(mode: HeapMode, operation: string) {
   if (mode === "binomial" && (operation === "Insert" || operation === "Combine")) return "O(1) amortized";
   if (mode === "fibonacci" && (operation === "Insert" || operation === "Decrease Key" || operation === "Cut")) return "O(1) amortized";
   if (operation === "Reset" || operation === "Tree A" || operation === "Tree B" || operation === "Root list") return "view";
+  if (mode === "binomial" || mode === "fibonacci") return "O(log n) amortized";
   return "O(log n)";
-}
-
-function drawHeapScene(
-  p: P5Like,
-  mode: HeapMode,
-  values: number[],
-  frame: number,
-  status: string,
-  anim: HeapAnimation,
-  extracted: number[]
-) {
-  drawTitle(p, MODES[mode].label, status);
-  if (mode === "minmax") drawMinMaxHeap(p, values, anim, extracted);
-  if (mode === "deap") drawDeap(p, values, anim, extracted);
-  if (mode === "leftist") drawLeftist(p, frame);
-  if (mode === "binomial") drawBinomial(p, frame);
-  if (mode === "fibonacci") drawFibonacci(p, frame);
 }
 
 function drawTitle(p: P5Like, title: string, subtitle: string) {
@@ -365,150 +205,150 @@ function drawTitle(p: P5Like, title: string, subtitle: string) {
   p.text(subtitle, p.width / 2, 46);
 }
 
-function drawMinMaxHeap(p: P5Like, values: number[], anim: HeapAnimation, extracted: number[]) {
-  drawCompleteTree(p, values, 92, (level) => level % 2 === 0, anim);
-  drawMinMaxAnnotations(p, values, anim);
-  drawExtractedRow(p, extracted);
-  drawPill(p, p.width / 2, 320, "Not a min heap: levels alternate min, max, min; delete-max targets the max level.");
-}
-
-function drawDeap(p: P5Like, values: number[], anim: HeapAnimation, extracted: number[]) {
-  drawNode(p, p.width / 2, 86, "empty", true, false);
-  const leftValues = values.filter((_, index) => index % 2 === 0);
-  const rightValues = values.filter((_, index) => index % 2 === 1);
-  drawSubHeap(p, leftValues, p.width / 2 - 150, 170, "min side");
-  drawSubHeap(p, rightValues, p.width / 2 + 150, 170, "max side");
-  drawLine(p, p.width / 2, 108, p.width / 2 - 150, 146, false);
-  drawLine(p, p.width / 2, 108, p.width / 2 + 150, 146, false);
-  if (anim) drawMovingNode(p, anim, p.width / 2, 92, p.width * 0.28);
-  drawExtractedRow(p, extracted);
-  drawPill(p, p.width / 2, 320, "Partner check: min-side value <= corresponding max-side value.");
-}
-
-function drawSubHeap(p: P5Like, values: number[], x: number, y: number, label: string) {
-  p.noStroke();
-  p.fill(0, 0, 48);
-  p.textSize(11);
-  p.text(label, x, y - 54);
-  drawCompleteTreeAt(p, values.slice(0, 7), x, y, 74, () => false);
-}
-
 function drawLeftist(p: P5Like, frame: number) {
-  const shift = frame >= 2 ? 0 : -110;
-  const nodes = [
-    { x: p.width / 2 + shift, y: 100, label: frame === 3 ? "5" : "2" },
-    { x: p.width / 2 - 90 + shift, y: 180, label: "7" },
-    { x: p.width / 2 + 90 + shift, y: 180, label: frame >= 2 ? "5" : "11" },
-    { x: p.width / 2 + 145 + shift, y: 260, label: "18" },
-  ];
-  drawTreeFromPoints(p, nodes, [
-    [0, 1],
-    [0, 2],
-    [2, 3],
-  ]);
+  const c = p.width / 2;
   if (frame < 2) {
-    const b = [
-      { x: p.width / 2 + 190, y: 120, label: "5" },
-      { x: p.width / 2 + 135, y: 205, label: "8" },
-      { x: p.width / 2 + 245, y: 205, label: "50" },
+    // Two min-leftist trees. In each, the shortest path to a missing child is never longer on the left.
+    const a = [
+      { x: c - 150, y: 96, label: "2" },
+      { x: c - 220, y: 172, label: "7" },
+      { x: c - 80, y: 172, label: "11" },
+      { x: c - 125, y: 248, label: "18" },
     ];
-    drawTreeFromPoints(p, b, [
-      [0, 1],
-      [0, 2],
-    ]);
+    const b = [
+      { x: c + 150, y: 96, label: "5" },
+      { x: c + 95, y: 172, label: "8" },
+      { x: c + 205, y: 172, label: "50" },
+    ];
+    drawTreeFromPoints(p, a, [[0, 1], [0, 2], [2, 3]], frame === 0);
+    drawTreeFromPoints(p, b, [[0, 1], [0, 2]], frame === 1);
+    p.noStroke();
+    p.fill(0, 0, 36);
+    p.textSize(11);
+    p.text("Tree A", c - 150, 62);
+    p.text("Tree B", c + 150, 62);
+    drawPill(
+      p,
+      c,
+      320,
+      frame === 0
+        ? "Tree A: 18 hangs on the left of 11, so no right path is longer than its left"
+        : "Tree B: every parent is smaller than its children, as in A"
+    );
+    return;
   }
-  drawPill(p, p.width / 2, 320, frame >= 2 ? "combine follows right paths, then swaps children to restore leftist property" : "choose Tree A or Tree B before combine");
+  if (frame === 2) {
+    const nodes = [
+      { x: c, y: 84, label: "2" },
+      { x: c - 100, y: 148, label: "5" },
+      { x: c + 100, y: 148, label: "7" },
+      { x: c - 170, y: 212, label: "11" },
+      { x: c - 30, y: 212, label: "8" },
+      { x: c - 215, y: 276, label: "18" },
+      { x: c - 125, y: 276, label: "50" },
+    ];
+    drawTreeFromPoints(p, nodes, [[0, 1], [0, 2], [1, 3], [1, 4], [3, 5], [3, 6]], true);
+    drawPill(p, c, 324, "combine merges the two right paths (2, 11 with 5, 50), then swaps children wherever the right side got deeper");
+    return;
+  }
+  const nodes = [
+    { x: c, y: 84, label: "5" },
+    { x: c - 100, y: 156, label: "11" },
+    { x: c + 100, y: 156, label: "7" },
+    { x: c - 150, y: 232, label: "18" },
+    { x: c - 50, y: 232, label: "50" },
+    { x: c + 55, y: 232, label: "8" },
+  ];
+  drawTreeFromPoints(p, nodes, [[0, 1], [0, 2], [1, 3], [1, 4], [2, 5]], true);
+  drawPill(p, c, 320, "delete-min removes the root 2 and combines its two subtrees, rooted at 5 and 7");
+}
+
+/** A heap-ordered tree for the root-list pictures: a key and its children, left to right. */
+type ListTree = { key: string; kids?: ListTree[]; dark?: boolean; accent?: boolean };
+
+const UNIT = 58;
+const LEVEL = 62;
+const widthOf = (tree: ListTree): number => Math.max(1, (tree.kids ?? []).reduce((sum, kid) => sum + widthOf(kid), 0));
+
+/** Draws one tree with its root centred over its children; returns nothing, positions are derived from widths. */
+function drawListTree(p: P5Like, tree: ListTree, left: number, y: number) {
+  const x = left + (widthOf(tree) * UNIT) / 2;
+  let at = left;
+  for (const kid of tree.kids ?? []) {
+    const kidX = at + (widthOf(kid) * UNIT) / 2;
+    drawLine(p, x, y + 22, kidX, y + LEVEL - 22, false);
+    drawListTree(p, kid, at, y + LEVEL);
+    at += widthOf(kid) * UNIT;
+  }
+  drawNode(p, x, y, tree.key, tree.dark ?? false, tree.accent ?? false);
+}
+
+/** Draws a root list: the trees side by side, their roots joined by dashed sibling links. */
+function drawRootList(p: P5Like, trees: ListTree[], y: number) {
+  const gap = 18;
+  const total = trees.reduce((sum, tree) => sum + widthOf(tree) * UNIT, 0) + gap * (trees.length - 1);
+  let left = p.width / 2 - total / 2;
+  let previous: number | null = null;
+  for (const tree of trees) {
+    const x = left + (widthOf(tree) * UNIT) / 2;
+    if (previous !== null) drawLine(p, previous + 24, y, x - 24, y, false, true);
+    drawListTree(p, tree, left, y);
+    previous = x;
+    left += widthOf(tree) * UNIT + gap;
+  }
 }
 
 function drawBinomial(p: P5Like, frame: number) {
-  const roots = frame >= 2 ? ["3", "8"] : frame === 1 ? ["3", "8", "12"] : ["3", "8", "18"];
-  roots.forEach((root, index) => {
-    const x = p.width / 2 - 150 + index * 150;
-    drawNode(p, x, 112, root, index === 0, false);
-    drawNode(p, x - 45, 200, String(Number(root) + 7), false, false);
-    drawNode(p, x + 45, 200, String(Number(root) + 14), false, false);
-    drawLine(p, x, 134, x - 45, 178, false);
-    drawLine(p, x, 134, x + 45, 178, false);
-    if (index > 0) drawLine(p, x - 105, 112, x - 45, 112, false, true);
-  });
-  drawPill(p, p.width / 2, 320, frame === 3 ? "delete-min removes the smallest root, then consolidates equal degrees" : "root list operations are cheap until consolidation");
+  const b1: ListTree = { key: "8", kids: [{ key: "15" }] };
+  const b2: ListTree = { key: "3", dark: true, kids: [{ key: "10", kids: [{ key: "17" }] }, { key: "20" }] };
+  const frames: ListTree[][] = [
+    [{ key: "12" }, b1, b2],
+    [{ key: "5", accent: true }, { key: "12" }, b1, b2],
+    [{ key: "5" }, { key: "12" }, b1, b2, { key: "6", accent: true, kids: [{ key: "9" }] }],
+    [
+      { key: "20" },
+      {
+        key: "5",
+        dark: true,
+        kids: [{ key: "12" }, { key: "10", kids: [{ key: "17" }] }, { key: "6", kids: [{ key: "9" }, { key: "8", kids: [{ key: "15" }] }] }],
+      },
+    ],
+  ];
+  drawRootList(p, frames[frame] ?? frames[0], 92);
+  const notes = [
+    "a root list of min-trees (dashed links); the filled root, 3, is the minimum",
+    "insert 5: a one-node tree joins the root list, and nothing else moves",
+    "combine with the heap 6-9: the two root lists are simply joined",
+    "delete-min removed 3; trees of equal degree were then linked until all degrees differ",
+  ];
+  drawPill(p, p.width / 2, 322, notes[frame] ?? notes[0]);
 }
 
 function drawFibonacci(p: P5Like, frame: number) {
-  const roots = ["6", "12", frame >= 1 ? "4" : "18", "24"];
-  roots.forEach((root, index) => {
-    const x = p.width / 2 - 210 + index * 140;
-    drawNode(p, x, 118, root, index === 2, frame >= 2 && index === 2);
-    if (index > 0) drawLine(p, x - 95, 118, x - 45, 118, false, true);
-    if (index === 1) {
-      drawNode(p, x, 210, frame >= 1 ? "15->4" : "15", false, frame >= 1);
-      drawLine(p, x, 140, x, 188, false);
-    }
-  });
-  drawPill(p, p.width / 2, 320, frame === 1 ? "decrease-key may violate parent order" : frame === 2 ? "cut moves the node to the root list and may mark parent" : frame === 3 ? "delete-min consolidates roots by degree" : "lazy root list keeps insert/combine cheap");
-}
-
-function drawCompleteTree(
-  p: P5Like,
-  values: number[],
-  y0: number,
-  minLevel: (level: number) => boolean,
-  anim: HeapAnimation
-) {
-  drawCompleteTreeAt(p, values, p.width / 2, y0, p.width * 0.28, minLevel, anim);
-}
-
-function drawCompleteTreeAt(
-  p: P5Like,
-  values: number[],
-  rootX: number,
-  rootY: number,
-  gap: number,
-  minLevel: (level: number) => boolean,
-  anim: HeapAnimation = null
-) {
-  const positions = values.map((value, index) => ({ value, ...completeTreePoint(index, rootX, rootY, gap) }));
-  const skipped = anim ? new Set([anim.fromIdx]) : new Set<number>();
-  positions.forEach((item, index) => {
-    const left = 2 * index + 1;
-    const right = 2 * index + 2;
-    if (positions[left]) drawLine(p, item.x, item.y + 22, positions[left].x, positions[left].y - 22, false);
-    if (positions[right]) drawLine(p, item.x, item.y + 22, positions[right].x, positions[right].y - 22, false);
-  });
-  positions.forEach((item, index) => {
-    if (!skipped.has(index)) drawNode(p, item.x, item.y, String(item.value), minLevel(item.level), false);
-  });
-  if (anim) drawMovingNode(p, anim, rootX, rootY, gap);
-}
-
-function drawMinMaxAnnotations(p: P5Like, values: number[], anim: HeapAnimation) {
-  if (values.length === 0) return;
-  const rootX = p.width / 2;
-  const rootY = 92;
-  const gap = p.width * 0.28;
-  const root = completeTreePoint(0, rootX, rootY, gap);
-  p.noStroke();
-  p.fill(0, 0, 36);
-  p.textSize(10);
-  p.text("min level", root.x - 70, root.y);
-  if (values.length <= 1) return;
-  const maxIndex = minMaxMaxIndex(values);
-  const maxPoint = completeTreePoint(maxIndex, rootX, rootY, gap);
-  if (!anim || anim.fromIdx !== maxIndex) drawNode(p, maxPoint.x, maxPoint.y, String(values[maxIndex]), false, true);
-  p.noStroke();
-  p.fill(0, 0, 36);
-  p.textSize(10);
-  p.text("max level", rootX + 112, root.y + 70);
-  p.text("delete max", maxPoint.x, maxPoint.y - 34);
+  const frames: ListTree[][] = [
+    [{ key: "6", dark: true }, { key: "12", kids: [{ key: "15" }, { key: "20", kids: [{ key: "25" }] }] }, { key: "24" }],
+    [{ key: "6", dark: true }, { key: "12", kids: [{ key: "15" }, { key: "20", kids: [{ key: "25->4", accent: true }] }] }, { key: "24" }],
+    [{ key: "6" }, { key: "12", kids: [{ key: "15" }, { key: "20", accent: true }] }, { key: "24" }, { key: "4", dark: true }],
+    [{ key: "6", dark: true, kids: [{ key: "24" }] }, { key: "12", kids: [{ key: "15" }, { key: "20", accent: true }] }],
+  ];
+  drawRootList(p, frames[frame] ?? frames[0], 100);
+  const notes = [
+    "a root list of heap-ordered trees; the filled root, 6, is the minimum",
+    "decrease-key 25 to 4: the new key is smaller than its parent 20, so heap order is broken",
+    "cut: 4 moves to the root list and becomes the minimum; 20 is marked (ringed) for losing a child",
+    "delete-min removed 4, then linked the two one-node roots: 24 went under 6",
+  ];
+  drawPill(p, p.width / 2, 322, notes[frame] ?? notes[0]);
 }
 
 function drawTreeFromPoints(
   p: P5Like,
   nodes: Array<{ x: number; y: number; label: string }>,
-  edges: Array<[number, number]>
+  edges: Array<[number, number]>,
+  emphasis = true
 ) {
   edges.forEach(([from, to]) => drawLine(p, nodes[from].x, nodes[from].y + 22, nodes[to].x, nodes[to].y - 22, false));
-  nodes.forEach((node, index) => drawNode(p, node.x, node.y, node.label, index === 0, false));
+  nodes.forEach((node, index) => drawNode(p, node.x, node.y, node.label, emphasis && index === 0, false));
 }
 
 function drawNode(p: P5Like, x: number, y: number, label: string, dark: boolean, accent: boolean) {
@@ -542,116 +382,4 @@ function drawPill(p: P5Like, x: number, y: number, label: string) {
   p.fill(0, 0, 35);
   p.textSize(11);
   p.text(label, x, y);
-}
-
-function completeTreePoint(index: number, rootX: number, rootY: number, gap: number): Point & { level: number } {
-  const level = Math.floor(Math.log2(index + 1));
-  const first = 2 ** level - 1;
-  const offset = index - first;
-  const count = 2 ** level;
-  return {
-    level,
-    x: rootX + (offset - (count - 1) / 2) * (gap / Math.max(1, level)),
-    y: rootY + level * 70,
-  };
-}
-
-function outputPoint(p: P5Like, index: number): Point {
-  return { x: p.width / 2 - 105 + index * 42, y: p.height - 48 };
-}
-
-function drawMovingNode(p: P5Like, anim: Exclude<HeapAnimation, null>, rootX: number, rootY: number, gap: number) {
-  const from = completeTreePoint(anim.fromIdx, rootX, rootY, gap);
-  const to = anim.toIdx >= 0 ? completeTreePoint(anim.toIdx, rootX, rootY, gap) : outputPoint(p, 2);
-  const t = Math.min(1, (Date.now() - anim.start) / anim.duration);
-  const eased = 1 - (1 - t) * (1 - t);
-  drawNode(p, p.lerp(from.x, to.x, eased), p.lerp(from.y, to.y, eased), String(anim.value), true, true);
-}
-
-function drawExtractedRow(p: P5Like, extracted: number[]) {
-  p.noStroke();
-  p.fill(0, 0, 48);
-  p.textSize(11);
-  p.text("Extracted", p.width / 2, p.height - 82);
-  extracted.slice(-6).forEach((value, index) => {
-    const point = outputPoint(p, index);
-    drawNode(p, point.x, point.y, String(value), true, false);
-  });
-}
-
-function isMinLevelIndex(index: number) {
-  return Math.floor(Math.log2(index + 1)) % 2 === 0;
-}
-
-function grandparent(index: number) {
-  if (index < 3) return -1;
-  return Math.floor((Math.floor((index - 1) / 2) - 1) / 2);
-}
-
-function bubbleUpMin(heap: number[], index: number) {
-  let i = index;
-  while (grandparent(i) >= 0 && heap[i] < heap[grandparent(i)]) {
-    const gp = grandparent(i);
-    [heap[i], heap[gp]] = [heap[gp], heap[i]];
-    i = gp;
-  }
-}
-
-function bubbleUpMax(heap: number[], index: number) {
-  let i = index;
-  while (grandparent(i) >= 0 && heap[i] > heap[grandparent(i)]) {
-    const gp = grandparent(i);
-    [heap[i], heap[gp]] = [heap[gp], heap[i]];
-    i = gp;
-  }
-}
-
-function minMaxInsert(current: number[], value: number): number[] {
-  const heap = [...current, value];
-  let i = heap.length - 1;
-  if (i === 0) return heap;
-  const parent = Math.floor((i - 1) / 2);
-  if (isMinLevelIndex(i)) {
-    if (heap[i] > heap[parent]) {
-      [heap[i], heap[parent]] = [heap[parent], heap[i]];
-      i = parent;
-      bubbleUpMax(heap, i);
-    } else {
-      bubbleUpMin(heap, i);
-    }
-  } else if (heap[i] < heap[parent]) {
-    [heap[i], heap[parent]] = [heap[parent], heap[i]];
-    i = parent;
-    bubbleUpMin(heap, i);
-  } else {
-    bubbleUpMax(heap, i);
-  }
-  return heap;
-}
-
-function buildMinMaxHeap(values: number[]) {
-  return values.reduce<number[]>((heap, value) => minMaxInsert(heap, value), []);
-}
-
-function minMaxMaxIndex(heap: number[]) {
-  if (heap.length <= 1) return 0;
-  if (heap.length === 2) return 1;
-  return heap[1] >= heap[2] ? 1 : 2;
-}
-
-function minMaxMax(heap: number[]) {
-  return heap[minMaxMaxIndex(heap)];
-}
-
-function normalizeDeap(values: number[]) {
-  const sorted = [...values].sort((a, b) => a - b);
-  const half = Math.ceil(sorted.length / 2);
-  const minSide = sorted.slice(0, half);
-  const maxSide = sorted.slice(half).reverse();
-  const out: number[] = [];
-  for (let i = 0; i < half; i++) {
-    if (minSide[i] !== undefined) out.push(minSide[i]);
-    if (maxSide[i] !== undefined) out.push(maxSide[i]);
-  }
-  return out;
 }

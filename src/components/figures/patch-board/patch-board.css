@@ -1,0 +1,137 @@
+/* The patch board (Fig 4.1 / 4.8). Tokens are scoped to the figure; the kit's light theme does the rest. */
+.patch-board {
+  --anatomy-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
+  --pb-window: #d6d6d2;
+}
+
+.patch-board .iso-figure {
+  margin: 0;
+}
+
+.patch-board .iso-plate {
+  padding: 44px 16px 46px;
+  border-radius: 10px;
+  box-shadow: 0 0 0 1px var(--color-hairline);
+}
+
+.patch-board .iso-legend {
+  margin-top: 14px;
+  font-size: 13px;
+}
+
+.pb-stage {
+  outline: none;
+  touch-action: pan-y;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pb-stage:focus-visible {
+  outline: 1px solid var(--anatomy-muted);
+  outline-offset: 6px;
+}
+
+.pb-word,
+.pb-link {
+  fill: var(--anatomy-hi);
+  font-weight: 600;
+  letter-spacing: 0;
+  pointer-events: none;
+  user-select: none;
+}
+
+.pb-link {
+  font-weight: 500;
+}
+
+/* The node being added or removed: the one lit part. */
+.pb-block[data-lit] .pb-word {
+  fill: var(--anatomy-lit);
+}
+
+.pb-block[data-lit] .iso-edge {
+  stroke-width: 1.3px;
+}
+
+/* A ring round the node the search is standing on. */
+.pb-rim {
+  stroke: transparent;
+  transition: stroke 140ms var(--anatomy-ease);
+}
+
+.pb-block[data-on] .pb-rim {
+  stroke: var(--anatomy-lit);
+  stroke-width: 1.4px;
+}
+
+.pb-cord {
+  stroke: var(--anatomy-hi);
+  stroke-width: 1.5px;
+}
+
+.pb-cord[data-side="back"] {
+  stroke: var(--anatomy-mid);
+  stroke-dasharray: 4 3;
+}
+
+.pb-plug {
+  fill: var(--anatomy-paper);
+  stroke: var(--anatomy-hi);
+  stroke-width: 1px;
+}
+
+.pb-plug[data-end] {
+  fill: var(--anatomy-hi);
+}
+
+/* The cord that was just re-plugged. */
+[data-lit] > .pb-cord {
+  stroke: var(--anatomy-lit);
+  stroke-width: 2.4px;
+}
+
+.pb-window {
+  fill: var(--pb-window);
+  stroke: none;
+}
+
+.pb-digits {
+  fill: var(--anatomy-hi);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+}
+
+.pb-hit {
+  fill: var(--anatomy-lit);
+  fill-opacity: 0;
+  stroke: none;
+  cursor: pointer;
+  transition: fill-opacity 180ms var(--anatomy-ease);
+}
+
+.pb-hit:hover {
+  fill-opacity: 0.06;
+}
+
+.pb-stage[data-busy] .pb-hit {
+  cursor: default;
+}
+
+.pb-stage[data-busy] .pb-hit:hover {
+  fill-opacity: 0;
+}
+
+.pb-live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pb-rim,
+  .pb-hit {
+    transition: none;
+  }
+}

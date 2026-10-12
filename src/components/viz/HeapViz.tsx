@@ -230,12 +230,24 @@ export default function HeapViz() {
 
   const insert = () => {
     const val = parseInt(insertVal);
-    if (isNaN(val)) return;
+    if (isNaN(val)) {
+      setStatus("Type a whole number to insert.");
+      return;
+    }
+    if (heap.length >= 15) {
+      setStatus("The lab holds four levels (15 nodes). Extract or reset before inserting more.");
+      return;
+    }
     const newHeap = [...heap, val];
     setHeap(newHeap);
     setAnimating("up");
 
     const steps = bubbleUp(newHeap, newHeap.length - 1);
+    setStatus(
+      steps.length
+        ? `Inserted ${val} as the last leaf; it moves up ${steps.length} ${steps.length === 1 ? "level" : "levels"} past ${isMax ? "smaller" : "larger"} parents.`
+        : `Inserted ${val} as the last leaf; its parent already ${isMax ? "is at least as large" : "is no larger"}, so nothing moves.`
+    );
     let stepIdx = 0;
     const interval = setInterval(() => {
       if (stepIdx < steps.length) {
@@ -255,6 +267,7 @@ export default function HeapViz() {
     if (heap.length <= 1) {
       setExtracted((current) => [...current, heap[0]].filter((value) => value !== undefined));
       setHeap([]);
+      setStatus(`The heap is empty. The extracted row is in ${isMax ? "descending" : "ascending"} order. Reset to start again.`);
       return;
     }
 
@@ -367,10 +380,11 @@ export default function HeapViz() {
           <input
             type="checkbox"
             checked={isMax}
+            disabled={animating !== null}
             onChange={(e) => toggleHeapKind(e.target.checked)}
             className="accent-[var(--color-primary)]"
           />
-          Max Heap
+          Max heap (switching resets)
         </label>
         <button
           type="button"

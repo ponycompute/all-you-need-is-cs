@@ -1,0 +1,10 @@
+/* The tag forest (Fig 5.10). */
+.tf-string {
+  stroke-width: 0.8px;
+}
+
+.tf-cell-text {
+  fill: var(--anatomy-hi);
+  font-weight: 600;
+  letter-spacing: 0;
+}

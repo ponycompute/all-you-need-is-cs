@@ -1,0 +1,129 @@
+/* The step rack (Fig 9). Tokens are scoped to the figure; the kit's light theme does the rest. */
+.heap-rack {
+  --anatomy-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
+  --hr-window: #d6d6d2;
+}
+
+.heap-rack .iso-figure {
+  margin: 0;
+}
+
+.heap-rack .iso-plate {
+  padding: 44px 16px 46px;
+  border-radius: 10px;
+  box-shadow: 0 0 0 1px var(--color-hairline);
+}
+
+.heap-rack .iso-legend {
+  margin-top: 14px;
+  font-size: 13px;
+}
+
+.hr-stage {
+  outline: none;
+  touch-action: pan-y;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.hr-stage:focus-visible {
+  outline: 1px solid var(--anatomy-muted);
+  outline-offset: 6px;
+}
+
+.hr-key {
+  fill: var(--anatomy-hi);
+  font-weight: 600;
+  letter-spacing: 0;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* The weight being followed: the one lit part. */
+.hr-weight[data-lit] .hr-key {
+  fill: var(--anatomy-lit);
+}
+
+.hr-weight[data-lit] .iso-edge {
+  stroke-width: 1.3px;
+}
+
+.hr-seat {
+  stroke: var(--anatomy-lo);
+  transition: stroke 160ms var(--anatomy-ease), stroke-width 160ms var(--anatomy-ease);
+}
+
+.hr-seat[data-on] {
+  stroke: var(--anatomy-lit);
+  stroke-width: 1.4px;
+}
+
+.hr-track {
+  stroke-width: 0.9px;
+}
+
+.hr-window {
+  fill: var(--hr-window);
+  stroke: none;
+}
+
+.hr-digits {
+  fill: var(--anatomy-hi);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+}
+
+.hr-hit {
+  fill: var(--anatomy-lit);
+  fill-opacity: 0;
+  stroke: none;
+  cursor: pointer;
+  transition: fill-opacity 180ms var(--anatomy-ease);
+}
+
+.hr-hit:hover {
+  fill-opacity: 0.05;
+}
+
+.hr-stage[data-busy] .hr-hit {
+  cursor: default;
+}
+
+.hr-stage[data-busy] .hr-hit:hover {
+  fill-opacity: 0;
+}
+
+.hr-live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hr-seat,
+  .hr-hit {
+    transition: none;
+  }
+}
+
+/* Heap sort: a seat whose weight has reached its final place, and its window in the array strip. */
+.hr-seat[data-done] {
+  stroke: var(--anatomy-hi);
+  stroke-width: 1.6px;
+}
+
+.hr-weight[data-done] .hr-key {
+  fill: var(--anatomy-mid);
+}
+
+.hr-cell-text {
+  fill: var(--anatomy-hi);
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.hr-cell[data-done] {
+  fill: var(--anatomy-shade-3);
+}

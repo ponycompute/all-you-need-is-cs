@@ -1,0 +1,32 @@
+/* The hash directory (Fig 8.3). */
+.hd-bits {
+  fill: var(--anatomy-hi);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.hd-code {
+  fill: var(--anatomy-mid);
+  letter-spacing: 0.06em;
+  pointer-events: none;
+}
+
+.hd-cord {
+  stroke: var(--anatomy-hi);
+  stroke-width: 1.3px;
+}
+
+.hd-plug {
+  fill: var(--anatomy-paper);
+  stroke: var(--anatomy-hi);
+  stroke-width: 1px;
+}
+
+.hd-plug[data-end] {
+  fill: var(--anatomy-hi);
+}
+
+[data-lit] > .hd-cord {
+  stroke: var(--anatomy-lit);
+  stroke-width: 2.4px;
+}

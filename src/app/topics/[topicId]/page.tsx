@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import ChapterHub from "@/components/layout/ChapterHub";
-import TopicPageShell from "@/components/layout/TopicPageShell";
+import ChapterPageView from "@/components/layout/ChapterPageView";
+import DocsShell from "@/components/layout/DocsShell";
 import { getTopic, PHASE1_TOPICS } from "@/lib/topics";
 
 type Props = { params: Promise<{ topicId: string }> };
@@ -26,8 +26,8 @@ export default async function TopicPage({ params }: Props) {
   if (!topic) notFound();
 
   return (
-    <TopicPageShell topicTitle={topic.title} topicId={topic.id}>
-      <ChapterHub topic={topic} />
-    </TopicPageShell>
+    <DocsShell topic={topic}>
+      <ChapterPageView topic={topic} />
+    </DocsShell>
   );
 }
